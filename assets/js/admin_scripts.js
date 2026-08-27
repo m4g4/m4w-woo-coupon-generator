@@ -59,7 +59,7 @@
                 return;
 
             copyButton.addEventListener("click", function() {
-                var copyIcon = document.querySelector("#" +copyButtonId+ " > i");
+                var copyIcon = copyButton.querySelector('.dashicons');
                 var copyText = document.getElementById(inputId);
     
                 if (!copyIcon || !copyText) {
@@ -70,25 +70,36 @@
                 copyText.select();
                 copyText.setSelectionRange(0, 99999);
             
-                function showCheckmark() {
-                    copyIcon.classList.remove("fa-copy");
-                    copyIcon.classList.add("fa-check");
+                function showSuccess() {
+                    copyIcon.classList.remove('dashicons-admin-page');
+                    copyIcon.classList.add('dashicons-yes');
+                    copyButton.classList.add('copied');
+                    
+                    var notice = document.createElement('span');
+                    notice.className = 'copy-notice';
+                    notice.textContent = 'Copied!';
+                    copyButton.appendChild(notice);
+                    
                     setTimeout(() => {
-                        copyIcon.classList.remove("fa-check");
-                        copyIcon.classList.add("fa-copy");
+                        copyIcon.classList.remove('dashicons-yes');
+                        copyIcon.classList.add('dashicons-admin-page');
+                        copyButton.classList.remove('copied');
+                        if (notice.parentNode) {
+                            notice.parentNode.removeChild(notice);
+                        }
                     }, 2000);
                 }
             
                 if (navigator.clipboard) {
                     navigator.clipboard.writeText(copyText.value).then(function() {
-                        showCheckmark();
+                        showSuccess();
                     }).catch(function(err) {
                         document.execCommand("copy");
-                        showCheckmark();
+                        showSuccess();
                     });
                 } else {
                     document.execCommand("copy");
-                    showCheckmark();
+                    showSuccess();
                 }
             });
         }

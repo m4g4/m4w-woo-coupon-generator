@@ -1,0 +1,56 @@
+#ar_coupon_panel_options .button {
+    position: relative;
+    margin-left: 8px;
+    padding: 4px 8px;
+    height: auto;
+    line-height: 1;
+}
+
+#ar_coupon_panel_options .button .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+#ar_coupon_panel_options .button.copied {
+    background-color: #46b450;
+    border-color: #46b450;
+    color: #fff;
+}
+
+#ar_coupon_panel_options .button.copied .dashicons {
+    color: #fff;
+}
+
+.copy-notice {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translateY(-50%);
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: #46b450;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 3px;
+    white-space: nowrap;
+    animation: fadeInOut 2s ease-in-out forwards;
+}
+
+.copy-notice::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -6px;
+    transform: translateY(-50%);
+    border: 6px solid transparent;
+    border-right-color: #46b450;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-50%) translateX(-10px); }
+    15% { opacity: 1; transform: translateY(-50%) translateX(0); }
+    85% { opacity: 1; transform: translateY(-50%) translateX(0); }
+    100% { opacity: 0; transform: translateY(-50%) translateX(10px); }
+}

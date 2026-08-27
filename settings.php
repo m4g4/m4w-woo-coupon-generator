@@ -38,6 +38,13 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
                 true
             );
 
+            wp_enqueue_style(
+                'woo-coupon-gen-admin-css',
+                plugins_url('/assets/css/admin_styles.css', __FILE__),
+                [],
+                '0.1.0'
+            );
+
             wp_localize_script('woo-coupon-gen-admin', 'woo_copoun_generator', [
                 'coupon_enabled_id' => $AR_ONE_TIME_COUPON_ENABLED,
                 'coupon_prefix_id' => $AR_ONE_TIME_COUPON_PREFIX,
