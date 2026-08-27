@@ -1,6 +1,6 @@
 # Woo Coupon Generator
 
-**Version:** 1.0.0  
+**Version:** 1.1.0  
 **Requires WordPress:** 5.6+  
 **Tested up to:** 6.8  
 **Requires PHP:** 7.4+  
