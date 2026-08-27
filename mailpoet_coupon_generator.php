@@ -109,6 +109,8 @@ if ( ! class_exists( 'Mailpoet_Coupon_Generator' ) ) {
             update_post_meta( $id, 'minimum_amount',        get_post_meta( $orig_id, 'minimum_amount', true) );
             update_post_meta( $id, 'maximum_amount',        get_post_meta( $orig_id, 'maximum_amount', true) );
             update_post_meta( $id, 'customer_email',        get_post_meta( $orig_id, 'customer_email', true) );
+
+            update_post_meta( $id, '_ar_parent_coupon_id', $orig_id );
         }
     }
 

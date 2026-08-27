@@ -30,6 +30,9 @@
         var enablement = document.getElementById(woo_copoun_generator.coupon_enabled_id);
         var prefix = document.getElementById(woo_copoun_generator.coupon_prefix_id);
         var fields = document.getElementById('ar_coupon_panel_options');
+        var removeBtn = document.getElementById('ar_remove_child_coupons');
+        var notice = document.getElementById('ar_remove_coupons_notice');
+        var postId = woo_copoun_generator.post_id;
 
         if (!enablement || !prefix || !fields) {
             console.warn('Coupon panel elements not found:', {
@@ -41,7 +44,11 @@
         }
 
         function toggleOtherFields() {
-            fields.style.display = enablement.checked ? 'block' : 'none';
+            var show = enablement.checked;
+            fields.style.display = show ? 'block' : 'none';
+            if (removeBtn) {
+                removeBtn.style.display = show ? 'inline-block' : 'none';
+            }
         }
 
         toggleOtherFields();
@@ -106,5 +113,57 @@
 
         attach_copy_click_handler('ar_mailpoet_coupon_copy_to_clipboard', 'ar_mailpoet_coupon_shortcode');
         attach_copy_click_handler('ar_fluentcrm_coupon_copy_to_clipboard', 'ar_fluentcrm_coupon_shortcode');
+
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                if (!confirm('Are you sure you want to remove ALL child coupons generated from this parent coupon? This action cannot be undone.')) {
+                    return;
+                }
+
+                removeBtn.disabled = true;
+                removeBtn.textContent = 'Removing...';
+                if (notice) {
+                    notice.style.display = 'inline';
+                    notice.textContent = '';
+                    notice.className = '';
+                }
+
+                var data = new FormData();
+                data.append('action', 'ar_remove_child_coupons');
+                data.append('post_id', postId);
+                data.append('nonce', woo_copoun_generator.remove_nonce);
+
+                fetch(ajaxurl, {
+                    method: 'POST',
+                    body: data
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(result) {
+                    removeBtn.disabled = false;
+                    removeBtn.textContent = 'Remove All Child Coupons';
+                    if (notice) {
+                        notice.style.display = 'inline';
+                        if (result.success) {
+                            notice.textContent = 'Removed ' + result.count + ' child coupon(s).';
+                            notice.className = 'notice-success';
+                        } else {
+                            notice.textContent = 'Error: ' + (result.data || 'Unknown error');
+                            notice.className = 'notice-error';
+                        }
+                    }
+                })
+                .catch(function(err) {
+                    removeBtn.disabled = false;
+                    removeBtn.textContent = 'Remove All Child Coupons';
+                    if (notice) {
+                        notice.style.display = 'inline';
+                        notice.textContent = 'Error: ' + err.message;
+                        notice.className = 'notice-error';
+                    }
+                });
+            });
+        }
     });
 })(jQuery);

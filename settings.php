@@ -15,6 +15,7 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
             add_action('save_post', array($this, 'save_postdata'));
             add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
             add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
+            add_action('wp_ajax_ar_remove_child_coupons', [$this, 'ajax_remove_child_coupons']);
         }
 
         public function add_meta_boxes() {
@@ -50,6 +51,8 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
                 'coupon_prefix_id' => $AR_ONE_TIME_COUPON_PREFIX,
                 'mailpoet_shortcode' => ar_mailpoet_coupon_gen_shortcode(),
                 'fluentcrm_smartcode' => ar_fluentcrm_coupon_gen_smartcode(),
+                'post_id' => $post->ID,
+                'remove_nonce' => wp_create_nonce('ar_remove_child_coupons_' . $post->ID),
             ]);
         }
 
@@ -122,6 +125,43 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
 
 function ar_key($id){
     return '_ar_' . $id;
+}
+
+public function ajax_remove_child_coupons() {
+    check_ajax_referer('ar_remove_child_coupons_' . $_POST['post_id'], 'nonce');
+
+    if (!current_user_can('manage_woocommerce')) {
+        wp_send_json_error('Insufficient permissions.');
+        return;
+    }
+
+    $parent_id = intval($_POST['post_id']);
+    if (!$parent_id) {
+        wp_send_json_error('Invalid parent coupon ID.');
+        return;
+    }
+
+    global $wpdb;
+    $child_ids = $wpdb->get_col($wpdb->prepare("
+        SELECT ID FROM $wpdb->posts
+        WHERE post_type = 'shop_coupon'
+        AND post_status = 'publish'
+        AND ID IN (
+            SELECT post_id FROM $wpdb->postmeta
+            WHERE meta_key = '_ar_parent_coupon_id'
+            AND meta_value = %d
+        )
+    ", $parent_id));
+
+    $count = 0;
+    foreach ($child_ids as $child_id) {
+        $result = wp_delete_post($child_id, true);
+        if ($result !== false) {
+            $count++;
+        }
+    }
+
+    wp_send_json_success(['count' => $count]);
 }
 
 new WooCommerce_Coupon_Generator_Settings();

@@ -54,3 +54,16 @@
     85% { opacity: 1; transform: translateY(-50%) translateX(0); }
     100% { opacity: 0; transform: translateY(-50%) translateX(10px); }
 }
+
+#ar_coupon_panel_options #ar_remove_coupons_notice {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+#ar_coupon_panel_options #ar_remove_coupons_notice.notice-success {
+    color: #46b450;
+}
+
+#ar_coupon_panel_options #ar_remove_coupons_notice.notice-error {
+    color: #dc3232;
+}
