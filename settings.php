@@ -15,11 +15,11 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
             add_action('save_post', array($this, 'save_postdata'));
             add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
             add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
-            add_action('admin_notices', [$this, 'maybe_show_admin_notice']);
+            add_action('wp_ajax_ar_remove_child_coupons', [$this, 'ajax_remove_child_coupons']);
         }
 
         public function add_meta_boxes() {
-            add_meta_box('ar_meta_coupon_box', 'One time coupons', array($this, 'ar_add_meta_coupon_box'), 'shop_coupon', 'side', 'high');
+            add_meta_box('m4w_wcg_meta_box', 'One time coupons', array($this, 'm4w_wcg_add_meta_box'), 'shop_coupon', 'side', 'high');
         }
 
         public function enqueue_scripts($hook) {
@@ -32,22 +32,31 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
             }
 
             wp_enqueue_script(
-                'woo-coupon-gen-admin',
+                'm4w-woo-coupon-gen-admin',
                 plugins_url('/assets/js/admin_scripts.js', __FILE__),
                 ['jquery'],
-                '0.1.0',
+                '1.3.0',
                 true
             );
 
-            wp_localize_script('woo-coupon-gen-admin', 'woo_copoun_generator', [
+            wp_enqueue_style(
+                'm4w-woo-coupon-gen-admin-css',
+                plugins_url('/assets/css/admin_styles.css', __FILE__),
+                [],
+                '1.3.0'
+            );
+
+            wp_localize_script('m4w-woo-coupon-gen-admin', 'woo_copoun_generator', [
                 'coupon_enabled_id' => $AR_ONE_TIME_COUPON_ENABLED,
                 'coupon_prefix_id' => $AR_ONE_TIME_COUPON_PREFIX,
                 'mailpoet_shortcode' => ar_mailpoet_coupon_gen_shortcode(),
                 'fluentcrm_smartcode' => ar_fluentcrm_coupon_gen_smartcode(),
+                'post_id' => $post->ID,
+                'remove_nonce' => wp_create_nonce('ar_remove_child_coupons_' . $post->ID),
             ]);
         }
 
-        public function ar_add_meta_coupon_box()
+        public function m4w_wcg_add_meta_box()
         {
             global $post, $AR_ONE_TIME_COUPON_ENABLED, $AR_ONE_TIME_COUPON_PREFIX;
 
@@ -88,18 +97,8 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
             if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
                 return $post_id;
             }
-
-            if (!current_user_can('edit_post', $post_id)) {
-                return $post_id;
-            }
-
             $this->save_checkbox_value($post_id, $AR_ONE_TIME_COUPON_ENABLED);
             $this->save_input_value($post_id, $AR_ONE_TIME_COUPON_PREFIX);
-
-            if (isset($_POST['ar_delete_child_coupons']) && $_POST['ar_delete_child_coupons'] === '1') {
-                $deleted_count = $this->delete_child_coupons($post_id);
-                $this->set_admin_notice($deleted_count);
-            }
 
             return $post_id;
         }
@@ -116,99 +115,129 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
         public function save_input_value($post_id, $id)
         {
             if (isset($_POST[$id])) {
-                update_post_meta($post_id, ar_key($id), sanitize_text_field($_POST[$id]));
+                update_post_meta($post_id, ar_key($id), $_POST[$id]);
             } else {
                 delete_post_meta($post_id, ar_key($id));
             }
         }
 
-        private function delete_child_coupons($base_coupon_id)
-        {
-            global $wpdb, $AR_ONE_TIME_COUPON_PREFIX;
+        public function ajax_remove_child_coupons() {
+            check_ajax_referer('ar_remove_child_coupons_' . $_POST['post_id'], 'nonce');
 
-            $base_coupon = get_post($base_coupon_id);
-            if (!$base_coupon || $base_coupon->post_type !== 'shop_coupon') {
-                return 0;
+            if (!current_user_can('manage_woocommerce')) {
+                wp_send_json_error(['message' => 'Insufficient permissions.']);
+                return;
             }
 
-            $prefix = get_post_meta($base_coupon_id, ar_key($AR_ONE_TIME_COUPON_PREFIX), true);
-            if (empty($prefix)) {
-                return 0;
+            $parent_id = intval($_POST['post_id']);
+            if (!$parent_id) {
+                wp_send_json_error(['message' => 'Invalid parent coupon ID.']);
+                return;
             }
 
-            $base_title = $base_coupon->post_title;
-            $content_prefix = 'Generated from ' . $base_title;
+            $this->link_legacy_child_coupons($parent_id, get_the_title($parent_id));
 
-            $coupon_ids = $wpdb->get_col(
-                $wpdb->prepare(
-                    "SELECT ID
-                     FROM $wpdb->posts
-                     WHERE post_type = 'shop_coupon'
-                     AND post_status <> 'trash'
-                     AND ID <> %d
-                     AND post_title LIKE %s
-                     AND post_content LIKE %s",
-                    $base_coupon_id,
-                    $wpdb->esc_like($prefix) . '%',
-                    $wpdb->esc_like($content_prefix) . '%'
+            global $wpdb;
+            $parent_coupon_keys = "'" . implode("','", ar_parent_coupon_meta_keys()) . "'";
+            $child_ids = $wpdb->get_col($wpdb->prepare("
+                SELECT ID FROM $wpdb->posts
+                WHERE post_type = 'shop_coupon'
+                AND post_status = 'publish'
+                AND ID IN (
+                    SELECT post_id FROM $wpdb->postmeta
+                    WHERE meta_key IN ($parent_coupon_keys)
+                    AND meta_value = %d
                 )
-            );
+            ", $parent_id));
 
-            if (empty($coupon_ids)) {
-                return 0;
-            }
-
-            $deleted = 0;
-            foreach ($coupon_ids as $coupon_id) {
-                $result = wp_delete_post((int) $coupon_id, true);
-                if ($result) {
-                    $deleted++;
+            $count = 0;
+            foreach ($child_ids as $child_id) {
+                $result = wp_delete_post($child_id, true);
+                if ($result !== false) {
+                    $count++;
                 }
             }
 
-            return $deleted;
+            wp_send_json_success(['count' => $count]);
         }
 
-        private function set_admin_notice($deleted_count)
-        {
-            set_transient(
-                'ar_coupon_delete_notice_' . get_current_user_id(),
-                (int) $deleted_count,
-                120
-            );
+        private function link_legacy_child_coupons($parent_id, $parent_title) {
+            if ($parent_title === '') {
+                return;
+            }
+
+            global $wpdb;
+
+            $candidates = $wpdb->get_results("
+                SELECT p.ID, p.post_content
+                FROM $wpdb->posts p
+                WHERE p.post_type = 'shop_coupon'
+                AND p.post_status = 'publish'
+                AND p.post_content LIKE 'Generated from%'
+                AND NOT EXISTS (
+                    SELECT 1 FROM $wpdb->postmeta pm
+                    WHERE pm.post_id = p.ID
+                    AND pm.meta_key IN ('" . M4W_WCG_PARENT_COUPON_KEY . "', '" . M4W_WCG_LEGACY_PARENT_COUPON_KEY . "')
+                )
+            ");
+
+            foreach ($candidates as $candidate) {
+                if (!self::description_references_parent($candidate->post_content, $parent_title)) {
+                    continue;
+                }
+
+                update_post_meta($candidate->ID, M4W_WCG_PARENT_COUPON_KEY, $parent_id);
+            }
         }
 
-        public function maybe_show_admin_notice()
-        {
-            if (!is_admin()) {
-                return;
+        private static function extract_parent_title_from_content($content) {
+            $content = trim($content);
+
+            $prefix = 'Generated from ';
+            if (strncmp($content, $prefix, strlen($prefix)) !== 0) {
+                return null;
             }
 
-            if (!function_exists('get_current_screen')) {
-                return;
+            $rest = substr($content, strlen($prefix));
+
+            $parent_coupon = 'parent coupon ';
+            if (strncmp($rest, $parent_coupon, strlen($parent_coupon)) === 0) {
+                $rest = substr($rest, strlen($parent_coupon));
             }
 
-            $screen = get_current_screen();
-            if (!$screen || $screen->base !== 'post' || $screen->post_type !== 'shop_coupon') {
-                return;
+            $rest = trim($rest);
+            if ($rest !== '' && $rest[0] === '"') {
+                $rest = substr($rest, 1);
             }
 
-            $key = 'ar_coupon_delete_notice_' . get_current_user_id();
-            $deleted_count = get_transient($key);
-            if ($deleted_count === false) {
-                return;
+            $end = strpos($rest, ' " for ');
+            if ($end === false) {
+                $end = strpos($rest, ' for ');
+            }
+            if ($end !== false) {
+                $rest = substr($rest, 0, $end);
             }
 
-            delete_transient($key);
-            echo '<div class="notice notice-success is-dismissible"><p>';
-            echo esc_html(sprintf('Deleted %d generated child coupon(s).', (int) $deleted_count));
-            echo '</p></div>';
+            $rest = trim($rest);
+            if (substr($rest, -1) === '"') {
+                $rest = substr($rest, 0, -1);
+            }
+
+            return trim($rest);
+        }
+
+        private static function description_references_parent($content, $parent_title) {
+            return self::extract_parent_title_from_content($content) === $parent_title;
         }
     }
 }
 
 function ar_key($id){
     return '_ar_' . $id;
+}
+
+function ar_parent_coupon_meta_keys(){
+    return [M4W_WCG_PARENT_COUPON_KEY, M4W_WCG_LEGACY_PARENT_COUPON_KEY];
 }
 
 new WooCommerce_Coupon_Generator_Settings();

@@ -58,7 +58,7 @@ if ( ! class_exists( 'Mailpoet_Coupon_Generator' ) ) {
             }
         
             $post = array(
-                'post_content'   => "Generated from ".$orig_coupon,
+                'post_content'   => 'Generated from "' . $orig_coupon . '"',
                 'post_name'      => "Name",
                 'post_title'     => $coupon_name,
                 'post_status'    => 'publish',
@@ -109,6 +109,8 @@ if ( ! class_exists( 'Mailpoet_Coupon_Generator' ) ) {
             update_post_meta( $id, 'minimum_amount',        get_post_meta( $orig_id, 'minimum_amount', true) );
             update_post_meta( $id, 'maximum_amount',        get_post_meta( $orig_id, 'maximum_amount', true) );
             update_post_meta( $id, 'customer_email',        get_post_meta( $orig_id, 'customer_email', true) );
+
+            update_post_meta( $id, M4W_WCG_PARENT_COUPON_KEY, $orig_id );
         }
     }
 

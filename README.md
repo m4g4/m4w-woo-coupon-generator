@@ -1,6 +1,6 @@
-# Woo Coupon Generator
+# M4W WOO Coupon Generator
 
-**Version:** 1.0.0  
+**Version:** 1.3.0  
 **Requires WordPress:** 5.6+  
 **Tested up to:** 6.8  
 **Requires PHP:** 7.4+  
@@ -65,7 +65,7 @@ When MailPoet sends the newsletter:
 ## Installation
 
 1. **Upload the plugin:**
-   - Copy the entire `woo-coupon-generator` folder into `/wp-content/plugins/`.
+   - Copy the entire `m4w-woo-coupon-generator` folder into `/wp-content/plugins/`.
 2. **Activate it** via the WordPress **Plugins** screen.
 3. Make sure you have **WooCommerce**, **FluentCRM**, and/or **MailPoet** active.
 4. Create a base coupon in WooCommerce (e.g., `WELCOME10`).
