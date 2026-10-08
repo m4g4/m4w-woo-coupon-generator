@@ -19,7 +19,7 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
         }
 
         public function add_meta_boxes() {
-            add_meta_box('ar_meta_coupon_box', 'One time coupons', array($this, 'ar_add_meta_coupon_box'), 'shop_coupon', 'side', 'high');
+            add_meta_box('m4w_wcg_meta_box', 'One time coupons', array($this, 'm4w_wcg_add_meta_box'), 'shop_coupon', 'side', 'high');
         }
 
         public function enqueue_scripts($hook) {
@@ -32,21 +32,21 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
             }
 
             wp_enqueue_script(
-                'woo-coupon-gen-admin',
+                'm4w-woo-coupon-gen-admin',
                 plugins_url('/assets/js/admin_scripts.js', __FILE__),
                 ['jquery'],
-                '0.1.0',
+                '1.3.0',
                 true
             );
 
             wp_enqueue_style(
-                'woo-coupon-gen-admin-css',
+                'm4w-woo-coupon-gen-admin-css',
                 plugins_url('/assets/css/admin_styles.css', __FILE__),
                 [],
-                '0.1.0'
+                '1.3.0'
             );
 
-            wp_localize_script('woo-coupon-gen-admin', 'woo_copoun_generator', [
+            wp_localize_script('m4w-woo-coupon-gen-admin', 'woo_copoun_generator', [
                 'coupon_enabled_id' => $AR_ONE_TIME_COUPON_ENABLED,
                 'coupon_prefix_id' => $AR_ONE_TIME_COUPON_PREFIX,
                 'mailpoet_shortcode' => ar_mailpoet_coupon_gen_shortcode(),
@@ -56,7 +56,7 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
             ]);
         }
 
-        public function ar_add_meta_coupon_box()
+        public function m4w_wcg_add_meta_box()
         {
             global $post, $AR_ONE_TIME_COUPON_ENABLED, $AR_ONE_TIME_COUPON_PREFIX;
 
@@ -125,24 +125,27 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
             check_ajax_referer('ar_remove_child_coupons_' . $_POST['post_id'], 'nonce');
 
             if (!current_user_can('manage_woocommerce')) {
-                wp_send_json_error('Insufficient permissions.');
+                wp_send_json_error(['message' => 'Insufficient permissions.']);
                 return;
             }
 
             $parent_id = intval($_POST['post_id']);
             if (!$parent_id) {
-                wp_send_json_error('Invalid parent coupon ID.');
+                wp_send_json_error(['message' => 'Invalid parent coupon ID.']);
                 return;
             }
 
+            $this->link_legacy_child_coupons($parent_id, get_the_title($parent_id));
+
             global $wpdb;
+            $parent_coupon_keys = "'" . implode("','", ar_parent_coupon_meta_keys()) . "'";
             $child_ids = $wpdb->get_col($wpdb->prepare("
                 SELECT ID FROM $wpdb->posts
                 WHERE post_type = 'shop_coupon'
                 AND post_status = 'publish'
                 AND ID IN (
                     SELECT post_id FROM $wpdb->postmeta
-                    WHERE meta_key = '_ar_parent_coupon_id'
+                    WHERE meta_key IN ($parent_coupon_keys)
                     AND meta_value = %d
                 )
             ", $parent_id));
@@ -157,11 +160,84 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
 
             wp_send_json_success(['count' => $count]);
         }
+
+        private function link_legacy_child_coupons($parent_id, $parent_title) {
+            if ($parent_title === '') {
+                return;
+            }
+
+            global $wpdb;
+
+            $candidates = $wpdb->get_results("
+                SELECT p.ID, p.post_content
+                FROM $wpdb->posts p
+                WHERE p.post_type = 'shop_coupon'
+                AND p.post_status = 'publish'
+                AND p.post_content LIKE 'Generated from%'
+                AND NOT EXISTS (
+                    SELECT 1 FROM $wpdb->postmeta pm
+                    WHERE pm.post_id = p.ID
+                    AND pm.meta_key IN ('" . M4W_WCG_PARENT_COUPON_KEY . "', '" . M4W_WCG_LEGACY_PARENT_COUPON_KEY . "')
+                )
+            ");
+
+            foreach ($candidates as $candidate) {
+                if (!self::description_references_parent($candidate->post_content, $parent_title)) {
+                    continue;
+                }
+
+                update_post_meta($candidate->ID, M4W_WCG_PARENT_COUPON_KEY, $parent_id);
+            }
+        }
+
+        private static function extract_parent_title_from_content($content) {
+            $content = trim($content);
+
+            $prefix = 'Generated from ';
+            if (strncmp($content, $prefix, strlen($prefix)) !== 0) {
+                return null;
+            }
+
+            $rest = substr($content, strlen($prefix));
+
+            $parent_coupon = 'parent coupon ';
+            if (strncmp($rest, $parent_coupon, strlen($parent_coupon)) === 0) {
+                $rest = substr($rest, strlen($parent_coupon));
+            }
+
+            $rest = trim($rest);
+            if ($rest !== '' && $rest[0] === '"') {
+                $rest = substr($rest, 1);
+            }
+
+            $end = strpos($rest, ' " for ');
+            if ($end === false) {
+                $end = strpos($rest, ' for ');
+            }
+            if ($end !== false) {
+                $rest = substr($rest, 0, $end);
+            }
+
+            $rest = trim($rest);
+            if (substr($rest, -1) === '"') {
+                $rest = substr($rest, 0, -1);
+            }
+
+            return trim($rest);
+        }
+
+        private static function description_references_parent($content, $parent_title) {
+            return self::extract_parent_title_from_content($content) === $parent_title;
+        }
     }
 }
 
 function ar_key($id){
     return '_ar_' . $id;
+}
+
+function ar_parent_coupon_meta_keys(){
+    return [M4W_WCG_PARENT_COUPON_KEY, M4W_WCG_LEGACY_PARENT_COUPON_KEY];
 }
 
 new WooCommerce_Coupon_Generator_Settings();

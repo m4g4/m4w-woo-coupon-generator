@@ -1,4 +1,4 @@
-#ar_coupon_panel_options .button {
+#m4w_wcg_panel_options .button {
     position: relative;
     margin-left: 8px;
     padding: 4px 8px;
@@ -6,19 +6,19 @@
     line-height: 1;
 }
 
-#ar_coupon_panel_options .button .dashicons {
+#m4w_wcg_panel_options .button .dashicons {
     font-size: 18px;
     width: 18px;
     height: 18px;
 }
 
-#ar_coupon_panel_options .button.copied {
+#m4w_wcg_panel_options .button.copied {
     background-color: #46b450;
     border-color: #46b450;
     color: #fff;
 }
 
-#ar_coupon_panel_options .button.copied .dashicons {
+#m4w_wcg_panel_options .button.copied .dashicons {
     color: #fff;
 }
 
@@ -55,15 +55,19 @@
     100% { opacity: 0; transform: translateY(-50%) translateX(10px); }
 }
 
-#ar_coupon_panel_options #ar_remove_coupons_notice {
+#m4w_wcg_panel_options #m4w_wcg_remove_notice {
     font-weight: 600;
     font-size: 13px;
 }
 
-#ar_coupon_panel_options #ar_remove_coupons_notice.notice-success {
+#m4w_wcg_panel_options #m4w_wcg_remove_notice.notice-success {
     color: #46b450;
 }
 
-#ar_coupon_panel_options #ar_remove_coupons_notice.notice-error {
+#m4w_wcg_panel_options #m4w_wcg_remove_notice.notice-error {
     color: #dc3232;
+}
+
+#m4w_wcg_panel_options #m4w_wcg_remove_notice.notice-info {
+    color: #787c82;
 }

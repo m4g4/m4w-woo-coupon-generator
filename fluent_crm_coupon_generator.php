@@ -164,7 +164,7 @@ if (!class_exists('FluentCRM_Coupon_Generator')) {
                 update_post_meta($new_id, $key, $value);
             }
 
-            update_post_meta($new_id, '_ar_parent_coupon_id', $orig_id);
+            update_post_meta($new_id, M4W_WCG_PARENT_COUPON_KEY, $orig_id);
         }
 
         private function is_email_preview()

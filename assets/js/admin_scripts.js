@@ -15,8 +15,8 @@
         $titleInput.on('input change', function() {
             var currentTitle = $titleInput.val();
             if (currentTitle !== previousTitle) {
-                change_coupon_shortcode('ar_mailpoet_coupon_shortcode', woo_copoun_generator.mailpoet_shortcode, currentTitle, '', '[', ']');
-                change_coupon_shortcode('ar_fluentcrm_coupon_shortcode', woo_copoun_generator.fluentcrm_smartcode, currentTitle, ':', '{{', '}}');
+                change_coupon_shortcode('m4w_wcg_mailpoet_shortcode', woo_copoun_generator.mailpoet_shortcode, currentTitle, '', '[', ']');
+                change_coupon_shortcode('m4w_wcg_fluentcrm_shortcode', woo_copoun_generator.fluentcrm_smartcode, currentTitle, ':', '{{', '}}');
                 previousTitle = currentTitle;
             }
         });
@@ -29,16 +29,16 @@
     document.addEventListener("DOMContentLoaded", function() {
         var enablement = document.getElementById(woo_copoun_generator.coupon_enabled_id);
         var prefix = document.getElementById(woo_copoun_generator.coupon_prefix_id);
-        var fields = document.getElementById('ar_coupon_panel_options');
-        var removeBtn = document.getElementById('ar_remove_child_coupons');
-        var notice = document.getElementById('ar_remove_coupons_notice');
+        var fields = document.getElementById('m4w_wcg_panel_options');
+        var removeBtn = document.getElementById('m4w_wcg_remove_child_coupons');
+        var notice = document.getElementById('m4w_wcg_remove_notice');
         var postId = woo_copoun_generator.post_id;
 
         if (!enablement || !prefix || !fields) {
             console.warn('Coupon panel elements not found:', {
                 enablement: woo_copoun_generator.coupon_enabled_id,
                 prefix: woo_copoun_generator.coupon_prefix_id,
-                fields: 'ar_coupon_panel_options'
+                fields: 'm4w_wcg_panel_options'
             });
             return;
         }
@@ -55,7 +55,7 @@
         enablement.addEventListener('change', toggleOtherFields);
 
         function change_example() {
-            document.getElementById("ar_coupon_example").textContent = prefix.value + "123456";
+            document.getElementById("m4w_wcg_example").textContent = prefix.value + "123456";
         }
         prefix.addEventListener('input', change_example);
         change_example();
@@ -111,8 +111,8 @@
             });
         }
 
-        attach_copy_click_handler('ar_mailpoet_coupon_copy_to_clipboard', 'ar_mailpoet_coupon_shortcode');
-        attach_copy_click_handler('ar_fluentcrm_coupon_copy_to_clipboard', 'ar_fluentcrm_coupon_shortcode');
+        attach_copy_click_handler('m4w_wcg_mailpoet_copy', 'm4w_wcg_mailpoet_shortcode');
+        attach_copy_click_handler('m4w_wcg_fluentcrm_copy', 'm4w_wcg_fluentcrm_shortcode');
 
         if (removeBtn) {
             removeBtn.addEventListener('click', function() {
@@ -146,10 +146,16 @@
                     if (notice) {
                         notice.style.display = 'inline';
                         if (result.success) {
-                            notice.textContent = 'Removed ' + result.count + ' child coupon(s).';
-                            notice.className = 'notice-success';
+                            var count = (result.data && typeof result.data.count !== 'undefined') ? parseInt(result.data.count, 10) : 0;
+                            if (count > 0) {
+                                notice.textContent = 'Removed ' + count + (count === 1 ? ' child coupon.' : ' child coupons.');
+                                notice.className = 'notice-success';
+                            } else {
+                                notice.textContent = 'No child coupons found for this coupon.';
+                                notice.className = 'notice-info';
+                            }
                         } else {
-                            notice.textContent = 'Error: ' + (result.data || 'Unknown error');
+                            notice.textContent = 'Error: ' + ((result.data && (result.data.message || result.data)) || 'Unknown error');
                             notice.className = 'notice-error';
                         }
                     }
