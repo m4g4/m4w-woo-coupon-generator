@@ -35,7 +35,7 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
                 'm4w-woo-coupon-gen-admin',
                 plugins_url('/assets/js/admin_scripts.js', __FILE__),
                 ['jquery'],
-                '1.3.0',
+                M4W_WOO_COUPON_GENERATOR_VERSION,
                 true
             );
 
@@ -43,7 +43,7 @@ if ( ! class_exists( 'WooCommerce_Coupon_Generator_Settings' ) ) {
                 'm4w-woo-coupon-gen-admin-css',
                 plugins_url('/assets/css/admin_styles.css', __FILE__),
                 [],
-                '1.3.0'
+                M4W_WOO_COUPON_GENERATOR_VERSION
             );
 
             wp_localize_script('m4w-woo-coupon-gen-admin', 'woo_copoun_generator', [
