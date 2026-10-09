@@ -59,6 +59,7 @@ if ( ! class_exists( 'Mailpoet_Coupon_Generator' ) ) {
         
             $post = array(
                 'post_content'   => 'Generated from "' . $orig_coupon . '"',
+                'post_excerpt'   => 'Generated from "' . $orig_coupon . '"',
                 'post_name'      => "Name",
                 'post_title'     => $coupon_name,
                 'post_status'    => 'publish',

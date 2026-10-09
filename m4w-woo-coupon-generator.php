@@ -2,7 +2,7 @@
 /**
  * Plugin Name: M4W Woo Coupon Generator
  * Description: Dynamically generates unique WooCommerce coupons for email marketing tools. Supports FluentCRM and MailPoet.
- * Version:     1.3.1
+ * Version:     1.3.2
  * Author:      m4g4
  * License:     GPLv3 or later
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -12,7 +12,7 @@
  * Requires PHP: 7.4
  */
 
-define('M4W_WOO_COUPON_GENERATOR_VERSION', '1.3.1');
+define('M4W_WOO_COUPON_GENERATOR_VERSION', '1.3.2');
 
 // Parent-coupon link meta keys. New children store the m4w_wcg key; the legacy
 // key is still honored so children created by older plugin versions keep working.

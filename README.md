@@ -1,6 +1,6 @@
 # M4W WOO Coupon Generator
 
-**Version:** 1.3.1  
+**Version:** 1.3.2  
 **Requires WordPress:** 5.6+  
 **Tested up to:** 6.8  
 **Requires PHP:** 7.4+  

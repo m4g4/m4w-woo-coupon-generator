@@ -116,6 +116,7 @@ if (!class_exists('FluentCRM_Coupon_Generator')) {
             $post = [
                 'post_title'   => $new_code,
                 'post_content' => 'Generated from ' . $base_coupon . ' for ' . $subscriber->email,
+                'post_excerpt' => 'Generated from ' . $base_coupon . ' for ' . $subscriber->email,
                 'post_status'  => 'publish',
                 'post_type'    => 'shop_coupon'
             ];
